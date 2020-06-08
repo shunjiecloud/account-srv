@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: account-srv
+  name: account-srv
+  namespace: shunjiecloud
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: account-srv
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: account-srv
+    spec:
+      imagePullSecrets:
+      - name: harbor
+      containers:
+      - image: harbor.shunjiecloud.com/shunjiecloud/account-srv:BUILD_NUMBER
+        name: account-srv
+        args: [
+          "--registry=etcd",
+          "--registry_address=172.18.46.93:2479,172.18.46.98:2479,172.18.46.99:2479"
+        ]
+        env:
+        - name: CONFIG_FILE_PATH
+          value: "/shunjiecloud/config.json"
+        resources: {}
+status: {}
