@@ -1,4 +1,4 @@
-package models
+package services
 
 import (
 	"bytes"
@@ -8,13 +8,14 @@ import (
 
 	merr "github.com/micro/go-micro/v2/errors"
 	"github.com/o1egl/govatar"
+	"github.com/shunjiecloud/account-srv/models"
 	"github.com/shunjiecloud/account-srv/modules"
 )
 
 func GeneralAvatar(name string, gender int32) (avatarSha1 string, err error) {
 	//  生成avatar
 	govatarGender := govatar.MALE
-	if gender == GENDER_FEMALE {
+	if gender == models.GENDER_FEMALE {
 		govatarGender = govatar.FEMALE
 	}
 	img, err := govatar.GenerateForUsername(govatarGender, name)

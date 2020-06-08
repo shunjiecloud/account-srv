@@ -1,19 +1,19 @@
 package main
 
 import (
-	"log"
-
 	"github.com/micro/go-micro/v2"
 	account_proto "github.com/shunjiecloud-proto/account/proto"
 	"github.com/shunjiecloud/account-srv/models"
 	"github.com/shunjiecloud/account-srv/modules"
 	"github.com/shunjiecloud/account-srv/services"
+	"github.com/shunjiecloud/pkg/log"
 )
 
 func main() {
 	//  Create srv
 	service := micro.NewService(
 		micro.Name("go.micro.srv.account"),
+		micro.WrapHandler(log.LogWrapper),
 	)
 
 	//  init modules
@@ -29,6 +29,6 @@ func main() {
 	account_proto.RegisterAccountHandler(service.Server(), new(services.AccountService))
 
 	if err := service.Run(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }

@@ -15,8 +15,14 @@ import (
 type AccountService struct{}
 
 func (a *AccountService) CreateUser(ctx context.Context, in *proto.CreateUserRequest, out *proto.CreateUserResponse) error {
+	//  用户名，用户电话，用户邮箱唯一
+	err := RegistrationCheck(in.Name, in.Mail, in.Phone)
+	if err != nil {
+		return err
+	}
+
 	//  TODO : 异步生成头像
-	avatarSha1, err := models.GeneralAvatar(in.Name, in.Gender)
+	avatarSha1, err := GeneralAvatar(in.Name, in.Gender)
 	if err != nil {
 		return err
 	}
@@ -52,6 +58,11 @@ func (a *AccountService) SignUp(ctx context.Context, in *proto.SignUpRequest, ou
 	if err != nil {
 		return err
 	}
+	//  用户名，用户电话，用户邮箱唯一
+	err = RegistrationCheck(in.Name, in.Mail, in.Phone)
+	if err != nil {
+		return err
+	}
 	//  对密码进行解密
 	decryptResp, err := modules.ModuleContext.EncryptSrvClient.Decrypt(ctx, &proto_encrypt.DecryptRequest{
 		CipherText: in.Password,
@@ -61,7 +72,7 @@ func (a *AccountService) SignUp(ctx context.Context, in *proto.SignUpRequest, ou
 	}
 
 	//  TODO : 异步生成头像
-	avatarSha1, err := models.GeneralAvatar(in.Name, in.Gender)
+	avatarSha1, err := GeneralAvatar(in.Name, in.Gender)
 	if err != nil {
 		return err
 	}
@@ -102,7 +113,7 @@ func (a *AccountService) SignIn(ctx context.Context, in *proto.SignInRequest, ou
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			//  密码错误或用户不存在均返回用户或密码错误
-			return merr.Unauthorized("user or password is wrong", "account:%v, password:%v", in.Account, in.Password)
+			return merr.Unauthorized("user or password is wrong", "account:%v", in.Account)
 		}
 		return err
 	}
@@ -114,9 +125,17 @@ func (a *AccountService) SignIn(ctx context.Context, in *proto.SignInRequest, ou
 		return err
 	}
 	//  确认密码
-	err = models.UserPasswordCheck(userInfo.Id, decryptResp.Original)
+	isOk, err := models.UserPasswordCheck(userInfo.Id, decryptResp.Original)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			//  密码错误或用户不存在均返回用户或密码错误
+			return merr.Unauthorized("user or password is wrong", "account:%v, password:%v", in.Account, in.Password)
+		}
 		return err
+	}
+	if isOk == false {
+		//  密码错误或用户不存在均返回用户或密码错误
+		return merr.Unauthorized("user or password is wrong", "account:%v, password:%v", in.Account, in.Password)
 	}
 	out.Avatar = userInfo.Avatar
 	out.Gender = (int32)(userInfo.Gender)
@@ -183,7 +202,7 @@ func (a *AccountService) UserInfo(ctx context.Context, in *proto.UserInfoRequest
 }
 
 func (a *AccountService) RegistrationCheck(ctx context.Context, in *proto.RegistrationCheckRequest, out *proto.RegistrationCheckResponse) error {
-	err := models.RegistrationCheck(in.Name, in.Mail, in.Phone)
+	err := RegistrationCheck(in.Name, in.Mail, in.Phone)
 	if err != nil {
 		return nil
 	}
@@ -195,14 +214,22 @@ func (a *AccountService) UserPasswordCheck(ctx context.Context, in *proto.UserPa
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			//  密码错误或用户不存在均返回用户或密码错误
-			return merr.Unauthorized("user or password is wrong", "userId:%v, password:%v", in.UserId, in.Password)
+			return merr.Unauthorized("user or password is wrong", "userId:%v", in.UserId)
 		}
 		return err
 	}
 	//  密码校验
-	err = models.UserPasswordCheck(userInfo.Id, in.Password)
+	isOk, err := models.UserPasswordCheck(userInfo.Id, in.Password)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			//  密码错误或用户不存在均返回用户或密码错误
+			return merr.Unauthorized("user or password is wrong", "userId:%v", userInfo.Id)
+		}
 		return err
+	}
+	if isOk == false {
+		//  密码错误或用户不存在均返回用户或密码错误
+		return merr.Unauthorized("user or password is wrong", "userId:%v", userInfo.Id)
 	}
 	return nil
 }
