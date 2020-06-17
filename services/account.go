@@ -66,6 +66,7 @@ func (a *AccountService) SignUp(ctx context.Context, in *proto.SignUpRequest, ou
 	//  对密码进行解密
 	decryptResp, err := modules.ModuleContext.EncryptSrvClient.Decrypt(ctx, &proto_encrypt.DecryptRequest{
 		CipherText: in.Password,
+		Id:         in.CryptoId,
 	})
 	if err != nil {
 		return err
@@ -101,13 +102,13 @@ func (a *AccountService) SignUp(ctx context.Context, in *proto.SignUpRequest, ou
 
 func (a *AccountService) SignIn(ctx context.Context, in *proto.SignInRequest, out *proto.SignInResponse) error {
 	//  校验验证码
-	// _, err := modules.ModuleContext.CaptchaSrvClient.CaptchaVerfify(ctx, &proto_captcha.CaptchaVerfifyRequest{
-	// 	CaptchaId: in.CaptchaId,
-	// 	Solution:  in.CaptchaSolution,
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	_, err := modules.ModuleContext.CaptchaSrvClient.CaptchaVerfify(ctx, &proto_captcha.CaptchaVerfifyRequest{
+		CaptchaId: in.CaptchaId,
+		Solution:  in.CaptchaSolution,
+	})
+	if err != nil {
+		return err
+	}
 	//  获取用户信息
 	userInfo, err := models.GetUserInfoByAccount(in.Account)
 	if err != nil {
@@ -120,6 +121,7 @@ func (a *AccountService) SignIn(ctx context.Context, in *proto.SignInRequest, ou
 	//  对密码进行解密
 	decryptResp, err := modules.ModuleContext.EncryptSrvClient.Decrypt(ctx, &proto_encrypt.DecryptRequest{
 		CipherText: in.Password,
+		Id:         in.CryptoId,
 	})
 	if err != nil {
 		return err
